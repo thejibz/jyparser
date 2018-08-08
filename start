@@ -24,7 +24,7 @@ requirements_check() {
 }
 
 show_usage() {
-  echo "Usage: "$0" [get <jq_filter> | set <jq_filter> <new_value>]"
+  echo "Usage: "$0" [get <jq_filter> | set <jq_filter> <new_value> | add <jq_filter> <new_value>]"
   echo ""
   exit 1
 }
@@ -50,6 +50,10 @@ is_json() {
   echo "$1" | jq -e 'if type=="array" or type=="object" then true else false end' &>/dev/null
 }
 
+is_array() {
+  echo "$1" | jq -e 'if type=="array" then true else false end' &>/dev/null
+}
+
 set_value() {
   [ $# -ne 3 ] && show_usage
 
@@ -57,6 +61,16 @@ set_value() {
     echo "$1" | jq "$2 |= $3"
   else
     echo "$1" | y2j | jq "$2 |= $3" | j2y
+  fi
+}
+
+add_value() {
+  [ $# -ne 3 ] && show_usage
+
+  if is_array $1; then
+    echo "$1" | jq "$2 |= . + $3"
+  else
+    echo "$1" | y2j | jq "$2 |= . + $3" | j2y
   fi
 }
 
@@ -86,6 +100,7 @@ main() {
 	case "$1" in
     set)            shift; set_value "$input" "$@";;
     get)            shift; read_value "$input" "$@";;
+    add)            shift; add_value "$input" "$@";;
     *)              show_usage;;
 	esac
 }
